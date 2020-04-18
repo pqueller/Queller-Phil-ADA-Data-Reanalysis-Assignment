@@ -133,7 +133,7 @@ opaque_means %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = se
   xlab("Trial")
 ```
 
-```{r out.width = "40%"}
+```{r out.width = "100%"}
 
 
 knitr:: include_graphics ("1.png")
