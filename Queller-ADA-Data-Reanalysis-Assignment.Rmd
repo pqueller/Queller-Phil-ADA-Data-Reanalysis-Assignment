@@ -1,30 +1,351 @@
 ---
-title: "Queller-Phil-ADA-Data-Reanalysis-Assignment"
+title: "Data Analysis Replication Assignment"
 author: "Phil Queller"
-date: "4/18/2020"
+date: "4/11/2020"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = TRUE,
+	message = TRUE,
+	comment = "##",
+	prompt = FALSE,
+	tidy = TRUE,
+	tidy.opts = list(blank = FALSE, width.cutoff = 75),
+	fig.path = "img/",
+	fig.align = "center"
+)
+```
+#Background
+
+This paper looks into differecnes in learning ability between male and female guppies in two learning tasks: a detour task and a maze task. Males and female guppies differ in various asepcects of behavior and ecology (e.g. colorful males face higher predation) and the researcheres wanted to know if males and females have evolved different cognitive abilities. 
+
+The detour task consists of a tank with a shoal group (reward) on one end and the focal fish on the other. Between them is a transparent divider the fish must detour around to reach the shoal. For the detour task, the researchers made the divider either fully transparent or semi-transparent (aka opqaue). Each fish was tested in either the transparent or opaque treatment and went throught the task 5 times. The researchers measured two variables in this task: overal solve time and time spent at the barrier.
+
+The maze task again consists of a shoal group (reward) on one side and a focal fish on the other. Between them are two barriers, each with 2 door choice, one of which is blocked. The focal fish must choose the correct door at each barrier to reach the reward. Each fish is tested 5 times to look for improvements in solve time and for overall accuracy. 
+
+
+
+
+
+
+
+To summarize the plots and analyses for this experiment:
+
+Detour:
+
+plots:
+1) time to solve task X trial transparent, by sex
+2) time to solve task X trial opaque, by sex 
+3) time in front of barrier X trial transparent, by sex
+4) time in front of barrier X trial opaque, by sex
+
+analyses:
+5) LMM with time to solve task as a function of trial, sex, and barrier type
+6) LMM with time in front of barrier as a function of trial, sex, and barrier type
+
+
+Maze:
+
+plots
+1) time to solve task X trial, by sex 
+2) mean accuracy X trial, by sex
+
+analyses:
+3) LMM with time to solve task as a function of trial and sex
+4) GLMM with door choice (correct or incorrect) as a function of trial, sex, and sector (first or second barrier)
+5) GLMM with mean accuracy across trials 2-5 as function of trial and sex
+
+
+
+
+
+```{r}
+
+library(tidyverse)
+library(lme4)
+library(radiant)
+library(lmerTest)
+
 ```
 
-## R Markdown
+```{r}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+detour <- read_csv("/Users/queller/Desktop/ADA_detour.csv")
+head(detour)
+maze <- read_csv("/Users/queller/Desktop/ADA_maze.csv")
+head(maze)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```
+##Detour
 
-```{r cars}
-summary(cars)
+
+First I will work with the detour data set. Ill start by making a data frame that has the mean solve time and time in front of barrier for each trial by sex. I will use these tables to make visualizations. 
+
+
+```{r}
+
+transparent_means <- detour %>%
+  filter(type.of.barrier == "transparent") %>%
+  group_by(trial, sex, type.of.barrier) %>%
+  mutate(barrier_plus_one = time.front.barrier + 1) %>%
+  summarize(mean_latency = mean(latency.solve.task), 
+            se_latency = se(latency.solve.task), 
+            mean_barrier = mean(barrier_plus_one), 
+            se_barrier = se(barrier_plus_one))
+            
+
+opaque_means <- detour %>%
+   filter(type.of.barrier == "opaque") %>%
+   group_by(trial, sex, type.of.barrier) %>%
+   mutate(barrier_plus_one = time.front.barrier + 1) %>%
+   summarize(mean_latency = mean(latency.solve.task), 
+            se_latency = se(latency.solve.task), 
+            mean_barrier = mean(barrier_plus_one), 
+            se_barrier = se(barrier_plus_one))
+
+full_means <- full_join(opaque_means, transparent_means)
+head(full_means)
+```
+###Plots
+
+
+Now make plots for *solve time* for both opaque and transaprent variations. 
+
+```{r}
+
+transparent_means %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
+  geom_line(position =    position_dodge(.2)) +
+  geom_point(position =    position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position =    position_dodge(.2)) +
+  ylab("Time to solve the task (s)") +
+  xlab("Trial")
+
+
+opaque_means %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
+  geom_line(position = position_dodge(.2)) +
+  geom_point(position = position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position = position_dodge(.2)) +
+  ylab("Time to solve the task (s)") +
+  xlab("Trial")
 ```
 
-## Including Plots
+```{r out.width = "40%"}
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+knitr:: include_graphics ("1.png")
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+knitr img src = "1.png" width="200px"/
+
+Now make plots for *time in front of barrier* for opaque and transparent variations.
+
+```{r}
+
+transparent_means %>% ggplot(aes(x = trial, y = mean_barrier, group = sex, color = sex)) +
+  geom_line(position = position_dodge(.2)) +
+  geom_point(position = position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_barrier - se_barrier, ymax= mean_barrier + se_barrier), width=.2, position =    position_dodge(.2)) +
+  ylab("Time spent in front of barrier (s)") +
+  xlab("Trial")
+
+
+opaque_means %>% ggplot(aes(x = trial, y = mean_barrier, group = sex, color = sex)) +
+  geom_line(position = position_dodge(.2)) +
+  geom_point(position = position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_barrier - se_barrier, ymax= mean_barrier + se_barrier), width=.2, position = position_dodge(.2)) +
+  ylab("Time spent in front of barrier (s)") +
+  xlab("Trial")
+
+
+```
+```{r out.width = "40%"}
+
+
+knitr:: include_graphics ("2.png")
+
+```
+###Analyses
+
+I'll fit a mixed linear model with *solve time* as the dependent variable, barier type, sex, and trial, as fixed effects, and subject ID as a random effect. 
+
+```{r}
+
+detour_fit <- lmer(log(latency.solve.task) ~ trial + sex + type.of.barrier + (1 | subject), data = detour)
+summary(detour_fit)
+
+```
+Now another model fitted to the detour data but with *time.at.barrier* as the dependent variable:
+
+I'm going to create another dataframe that adds the (time.at.barrier + 1) column to the original detour dataframe
+
+```{r}
+
+df <- detour %>%  mutate(barrier_plus_one = time.front.barrier + 1)
+
+```
+
+```{r}
+
+detour_fit <- lmer(log(barrier_plus_one) ~ trial + sex + type.of.barrier + (1 | subject), data = df)
+summary(detour_fit)
+
+```
+##Maze
+
+
+I need to make 3 new dfs: one with *mean solve time* by trial by sex and another with *mean choice accuracy* % by trial by sex (for the figure) and another with raw *choice accuracy* values in long format to run the GLMM.
+
+**I'm having trouble making the accuracy df. I am trying to add up all the correct choices for each sex across trials 2-5 and then divide by total number of choices, which is 8 per fish, or 192 per sex. I also need help calculating SE here**
+```{r}
+
+maze_solveTime_mean <- maze %>%
+  group_by(trial, sex) %>%
+  summarize(mean_latency = mean(time.solve.task), se_latency = se(time.solve.task))
+
+
+#this is to make the figure, not to make run the model.
+accuracy_plot <- maze %>%
+  pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
+  group_by(trial,sex) %>%
+  summarize(correct.choices = sum(value), 
+            total_choices = n(),
+            accuracy_percent = (correct.choices/total_choices),
+            se_accuracy_percent = se(accuracy_percent)
+            )
+head(accuracy_plot)
+
+#this is for the model
+accuracy_model <- maze %>%
+  filter (trial !=1) %>%
+  pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
+  group_by(sex,door)
+
+#accuracy model on just males
+
+male_accuracy <- accuracy_model %>% filter(sex == "M")
+  
+  view(male_accuracy)
+
+#accuracy model on just females
+
+female_accuracy <- accuracy_model %>% filter(sex == "F")
+
+```
+###Plots
+
+
+Now make a plot of *solve time* by trial by sex
+
+```{r}
+
+maze_solveTime_mean %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
+  geom_line(position =    position_dodge(.2)) +
+  geom_point(position =    position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position =  position_dodge(.2)) +
+  ylab("Time spent in front of barrier (s)") +
+  xlab("Trial")
+
+```
+Now make a plot of *mean accuracy* by trial by sex
+
+**Can't do this until I fix accuracy df**
+
+```{r}
+
+accuracy_plot %>% ggplot(aes(x = trial, y = accuracy_percent, group = sex, color = sex)) +
+  geom_line(position = position_dodge(.2)) +
+  geom_point(position = position_dodge(.2)) +
+  geom_errorbar(aes(ymin = accuracy_percent - se_accuracy_percent, ymax= accuracy_percent + se_accuracy_percent), width=.2, position = position_dodge(.2)) +
+  geom_hline(yintercept = 0.5) +
+  ylab("Accuracy (%)") +
+  xlab("Trial")
+
+```
+
+```{r out.width = "40%"}
+
+
+knitr:: include_graphics ("3.png")
+
+```
+```{r}
+
+maze_fit <- lmer(log(time.solve.task) ~ trial + sex + (1 | fish.id), data = maze)
+summary(maze_fit)
+
+
+```
+
+To analyze the maze I will fit a generalized linear mixed model to the maze data with door choice (correct or incorrect) as the dependent variable, with sex, trial, and door (first or second) as fixed effects, and subject ID as a random effect.
+
+I will first need to convert my data from wide to long (first.door and second.door will become 'door' with another column for 'choice' with a binary variable)
+
+
+**Stuck running the GLMM**
+
+```{r}
+
+
+maze_fit <- glmer(data = accuracy_model, value ~ sex + door + trial + (1 | fish.id), family = binomial)
+summary(maze_fit)
+```
+```{r}
+
+
+maze_fit <- glmer(data = male_accuracy, value ~ door + trial + (1 | fish.id), family = binomial)
+summary(maze_fit)
+
+
+
+```
+```{r}
+
+
+maze_fit <- glmer(data = female_accuracy, value ~ door + trial + (1 | fish.id), family = binomial)
+summary(maze_fit)
+
+
+
+```
+
+The model above only shows an effect of sex, but not trial, indicating that males move more quickly through the maze then 
+
+
+To analyze choice accuracy in the maze I will fit a generalized linear mixed model to the maze data with *mean accuracy per subject* as the dependent variable, with sex, trial, and sector (first or second) as fixed effects, and subject ID as a random effect.
+
+
+**Can't do this until I fix accuracy df** and will maybe have same problem as abvove: **Stuck running the GLMM**
+
+```{r}
+
+mean_subject_accuracy <- maze %>%
+  filter (trial !=1) %>%
+  pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
+  group_by(fish.id) %>%
+  summarize(correct.choices = sum(value), 
+            total_choices = n(),
+            accuracy_percent = (correct.choices/total_choices),
+            sex = unique(sex))
+  
+
+head(mean_subject_accuracy)
+
+# make a copy of ^ for males and females to compare to chance (50%)
+
+males <- mean_subject_accuracy %>% filter(sex == "M")
+females <- mean_subject_accuracy %>% filter(sex == "F")
+#should be a ttest 
+
+t.test(males$accuracy_percent, mu = 0.5, alternative = "greater")
+t.test(females$accuracy_percent, mu = 0.5, alternative = "greater")
+
+
+
+
+```
