@@ -70,10 +70,10 @@ library(lmerTest)
 
 ```{r}
 
-detour <- read_csv("/Users/queller/Desktop/ADA_detour.csv")
+detour <- read_csv("/Users/queller/Desktop/Applied_Data_Analysis_Class/Queller-Phil-ADA-Data-Reanalysis-Assignment/ADA_detour.csv")
 head(detour)
 
-maze <- read_csv("/Users/queller/Desktop/ADA_maze.csv")
+maze <- read_csv("/Users/queller/Desktop/Applied_Data_Analysis_Class/Queller-Phil-ADA-Data-Reanalysis-Assignment/ADA_maze.csv")
 head(maze)
 
 ```
