@@ -29,7 +29,7 @@ The maze task again consists of a shoal group (reward) on one side and a focal f
 
 This experiemnt uses two datasets, one for each task. Below I will summarize the visualazations and analyses I will perform on each dataset:
 
-Detour:
+###Detour:
 
 plots:
 1) time to solve task X trial transparent, by sex
@@ -42,9 +42,9 @@ analyses:
 6) LMM with time in front of barrier as a function of trial, sex, and barrier type
 
 
-Maze:
+###Maze:
 
-plots
+plots:
 1) time to solve task X trial, by sex 
 2) mean accuracy X trial, by sex
 
@@ -80,7 +80,7 @@ head(maze)
 #Detour
 
 
-First I will work with the detour data set. Ill start by making new data frames with descriptive statistics Ill then plot. I want to plot mean solve time and mean time at barrier by trial and by sex.
+First I will work with the detour data set. Ill start by making new data frames with descriptive statistics I'll then plot. I want to plot mean solve time and mean time at barrier by trial and by sex.
 
 
 ##Descriptive stats and plots
@@ -165,12 +165,13 @@ opaque_means %>% ggplot(aes(x = trial, y = mean_barrier, group = sex, color = se
 
 Compare to the published figures:
 
-```{r out.width = "40%"}
+```{r out.width = "100%"}
 
 
 knitr:: include_graphics ("2.png")
 
 ```
+
 ##Analyses
 
 I'll fit a mixed linear model with solve time as the dependent variable, barier type, sex, and trial, as fixed effects, and subject ID as a random effect. 
@@ -259,12 +260,15 @@ accuracy_plot %>% ggplot(aes(x = trial, y = accuracy_percent, group = sex, color
 
 ```
 
-```{r out.width = "40%"}
+```{r out.width = "100%"}
 
 
 knitr:: include_graphics ("3.png")
 
 ```
+
+##Analyses 
+
 
 Now I'll run a LMM onn solve time as a function of trial and sex. 
 
@@ -365,7 +369,3 @@ My results confirmed those of the orignal paper: overall accuracy was significan
 Overall I was successful in recreating the plots and analyses of this paper. My visualizations look very similar to the original paper. My analyses were largely similar, although there were a few differences. For example, the LMM on time to solve the maze did not show any significant effects in my model, but it did in the paper. Similarly, in the GLMM on accuracy, the original paper reported only an effect of sex, but my analyses also showed a near-signifcant effect of trial. Also, the original paper found that a GLMM on male accuracy revealed a significant effect of trial (p = 0.006). In my analysis, trial was approaching significance at p = 0.053. Finally, the original paper reported a GLMM on male accuracy revealed a significant effect of trial (p = 0.006). In my analysis, trial was approaching significance at p = 0.053.
 
 If the paper would have included more specific information on the parameters of these tests that might account for some of the differences in our analyses. Also, they weren't always clear on what analyses was being done. We had to infer which statistical test was done by the stats they report in the results (partiicularly for the mean choice accuracy by sex compared to chance test)
-
-
-
-[How successful were you at replicating the analyses and visualizations in the study? What problems did you encounter? Why might you have encountered those problems? What details were lacking from the original study's methods that might have hampered your ability to replicate the authors' results?]
