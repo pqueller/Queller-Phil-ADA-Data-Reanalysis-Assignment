@@ -51,6 +51,7 @@ plots
 analyses:
 3) LMM with time to solve task as a function of trial and sex
 4) GLMM with door choice (correct or incorrect) as a function of trial, sex, and sector (first or second barrier)
+5) Use data from 4) to split sexes apart and run 2 idependent GLMMs as in 4) but within each sex. 
 5) t ttest to compare male mean accuracy on trials (2-5) agaisnt chance ()
 6) t ttest to compare female mean accuracy on trials (2-5) agaisnt chance ()
 
@@ -76,14 +77,16 @@ maze <- read_csv("/Users/queller/Desktop/ADA_maze.csv")
 head(maze)
 
 ```
-##Detour
+#Detour
 
 
-First I will work with the detour data set. Ill start by making a data frame that has the mean solve time and time in front of barrier for each trial by sex. I will use these tables to make visualizations. 
+First I will work with the detour data set. Ill start by making new data frames with descriptive statistics Ill then plot. I want to plot mean solve time and mean time at barrier by trial and by sex.
 
 
+##Descriptive stats and plots
 ```{r}
 
+#mean solve time and time at barrier for the transparent barrier
 transparent_means <- detour %>%
   filter(type.of.barrier == "transparent") %>%
   group_by(trial, sex, type.of.barrier) %>%
@@ -94,6 +97,8 @@ transparent_means <- detour %>%
             se_barrier = se(barrier_plus_one))
             
 
+
+#mean solve time and time at barrier for the opaque barrier
 opaque_means <- detour %>%
    filter(type.of.barrier == "opaque") %>%
    group_by(trial, sex, type.of.barrier) %>%
@@ -103,15 +108,12 @@ opaque_means <- detour %>%
             mean_barrier = mean(barrier_plus_one), 
             se_barrier = se(barrier_plus_one))
 
-full_means <- full_join(opaque_means, transparent_means)
-head(full_means)
+
 ```
-###Plots
 
+Now make plots for solve time for both opaque and transaprent variations. 
 
-Now make plots for *solve time* for both opaque and transaprent variations. 
-
-```{r}
+```{r out.width = "100%"}
 
 transparent_means %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
   geom_line(position =    position_dodge(.2)) +
@@ -127,7 +129,10 @@ opaque_means %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = se
   geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position = position_dodge(.2)) +
   ylab("Time to solve the task (s)") +
   xlab("Trial")
+
 ```
+
+Compare to the published figures:
 
 ```{r out.width = "100%"}
 
@@ -136,10 +141,7 @@ knitr:: include_graphics ("1.png")
 
 ```
 
-
-knitr img src = "1.png" width="200px"/
-
-Now make plots for *time in front of barrier* for opaque and transparent variations.
+Now I'll make plots for time in front of barrier for opaque and transparent variations.
 
 ```{r}
 
@@ -160,15 +162,18 @@ opaque_means %>% ggplot(aes(x = trial, y = mean_barrier, group = sex, color = se
 
 
 ```
+
+Compare to the published figures:
+
 ```{r out.width = "40%"}
 
 
 knitr:: include_graphics ("2.png")
 
 ```
-###Analyses
+##Analyses
 
-I'll fit a mixed linear model with *solve time* as the dependent variable, barier type, sex, and trial, as fixed effects, and subject ID as a random effect. 
+I'll fit a mixed linear model with solve time as the dependent variable, barier type, sex, and trial, as fixed effects, and subject ID as a random effect. 
 
 ```{r}
 
@@ -176,9 +181,11 @@ detour_fit <- lmer(log(latency.solve.task) ~ trial + sex + type.of.barrier + (1 
 summary(detour_fit)
 
 ```
-Now another model fitted to the detour data but with *time.at.barrier* as the dependent variable:
+Let's compare these findings with the original paper. For the LMM on solve time in the detour task, the researchers report significant effects of trial (p < 0.001), barrier type (p < 0.001), and sex (p < 0.001). My LMM reveals the same relationships as the original paper, as seen by the p-values shown in the summary stats of the model. 
 
-I'm going to create another dataframe that adds the (time.at.barrier + 1) column to the original detour dataframe
+
+
+Now I'll fit another model to with time.at.barrier as the dependent variable. The researchers log transformed these values, but a log transformation won't work for values of 0, which exist in this variable. So I will create a new variable called barrier_plus_one where I add 1 to every value, keeping their relationships the same while allowing a log transformation. 
 
 ```{r}
 
@@ -186,18 +193,31 @@ df <- detour %>%  mutate(barrier_plus_one = time.front.barrier + 1)
 
 ```
 
+Now run the LMM on time at barrier as a function of trial, sex, and barrier type:
+
 ```{r}
 
 detour_fit <- lmer(log(barrier_plus_one) ~ trial + sex + type.of.barrier + (1 | subject), data = df)
 summary(detour_fit)
 
 ```
-##Maze
+
+The findings from the LMM on time at barrier concur with the results in the orginal paper. They found signficiant effects of trial (p < 0.001), sex (p < 0.020), and barrier type (p < 0.001). 
 
 
-I need to make 3 new dfs: one with *mean solve time* by trial by sex and another with *mean choice accuracy* % by trial by sex (for the figure) and another with raw *choice accuracy* values in long format to run the GLMM.
 
-**I'm having trouble making the accuracy df. I am trying to add up all the correct choices for each sex across trials 2-5 and then divide by total number of choices, which is 8 per fish, or 192 per sex. I also need help calculating SE here**
+#Maze
+
+
+Now I will work with the maze data set. Ill start by making new data frames with descriptive statistics Ill then plot. I want to plot mean solve time and mean accuracy by trial. 
+
+
+##Descriptive stats and plots
+
+
+For mean solve time I need to create a dataframe with the average solve time by trial and sex with the standard error:
+
+
 ```{r}
 
 maze_solveTime_mean <- maze %>%
@@ -205,7 +225,21 @@ maze_solveTime_mean <- maze %>%
   summarize(mean_latency = mean(time.solve.task), se_latency = se(time.solve.task))
 
 
-#this is to make the figure, not to make run the model.
+maze_solveTime_mean %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
+  geom_line(position =    position_dodge(.2)) +
+  geom_point(position =    position_dodge(.2)) +
+  geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position =  position_dodge(.2)) +
+  ylab("Time to solve the task (s)") +
+  xlab("Trial")
+
+
+
+```
+
+Now make a plot of mean accuracy by trial by sex
+
+
+```{r}
 accuracy_plot <- maze %>%
   pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
   group_by(trial,sex) %>%
@@ -214,45 +248,6 @@ accuracy_plot <- maze %>%
             accuracy_percent = (correct.choices/total_choices),
             se_accuracy_percent = se(accuracy_percent)
             )
-head(accuracy_plot)
-
-#this is for the model
-accuracy_model <- maze %>%
-  filter (trial !=1) %>%
-  pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
-  group_by(sex,door)
-
-#accuracy model on just males
-
-male_accuracy <- accuracy_model %>% filter(sex == "M")
-  
-head(male_accuracy)
-
-#accuracy model on just females
-
-female_accuracy <- accuracy_model %>% filter(sex == "F")
-
-```
-###Plots
-
-
-Now make a plot of *solve time* by trial by sex
-
-```{r}
-
-maze_solveTime_mean %>% ggplot(aes(x = trial, y = mean_latency, group = sex, color = sex)) +
-  geom_line(position =    position_dodge(.2)) +
-  geom_point(position =    position_dodge(.2)) +
-  geom_errorbar(aes(ymin = mean_latency - se_latency, ymax= mean_latency + se_latency), width=.2, position =  position_dodge(.2)) +
-  ylab("Time spent in front of barrier (s)") +
-  xlab("Trial")
-
-```
-Now make a plot of *mean accuracy* by trial by sex
-
-**Can't do this until I fix accuracy df**
-
-```{r}
 
 accuracy_plot %>% ggplot(aes(x = trial, y = accuracy_percent, group = sex, color = sex)) +
   geom_line(position = position_dodge(.2)) +
@@ -270,6 +265,9 @@ accuracy_plot %>% ggplot(aes(x = trial, y = accuracy_percent, group = sex, color
 knitr:: include_graphics ("3.png")
 
 ```
+
+Now I'll run a LMM onn solve time as a function of trial and sex. 
+
 ```{r}
 
 maze_fit <- lmer(log(time.solve.task) ~ trial + sex + (1 | fish.id), data = maze)
@@ -277,23 +275,36 @@ summary(maze_fit)
 
 
 ```
-
-To analyze the maze I will fit a generalized linear mixed model to the maze data with door choice (correct or incorrect) as the dependent variable, with sex, trial, and door (first or second) as fixed effects, and subject ID as a random effect.
-
-I will first need to convert my data from wide to long (first.door and second.door will become 'door' with another column for 'choice' with a binary variable)
+Here we see some difference between my analysis and that of the orignal paper. This LMM shows no effect of sex or trial on solve time. The original paper reported a significant effect of trial (p < 0.001). I'm not sure why. The p values are so far apart I don't think its a difference that comes from slightly different assumptions built into the model. 
 
 
-**Stuck running the GLMM**
+
+To analyze the choice accuracy in the maze I will fit a generalized linear mixed model  with door choice (correct or incorrect) as the dependent variable, sex, trial, and door (first or second) as fixed effects, and subject ID as a random effect. 
+
+I will need to convert my data from wide to long (first.door and second.door will become 'door' with another column for 'choice' with a binary variable)
+
 
 ```{r}
+
+#this is for the model
+accuracy_model <- maze %>%
+  pivot_longer(cols=c("first.door","second.door"), names_to = "door") %>%
+  group_by(sex,door)
 
 
 maze_fit <- glmer(data = accuracy_model, value ~ sex + door + trial + (1 | fish.id), family = binomial)
 summary(maze_fit)
 ```
 
+The results of my GLMM on accuracy as a function of trial, sex, and door revealed similar results as the original paper. They report a significant effect of sex (p = 0.041) and no effect of door or trial. In my GLMM trial is approaching significance as well. This may because of slightly different assumptions built into the model parameters between myself and the original paper. 
+
+Because there was a significant effect of sex, the researchers ran 2 separate GLMMs for each sex.
+
 ```{r}
 
+
+male_accuracy <- accuracy_model %>% filter(sex == "M")
+  
 
 maze_fit <- glmer(data = male_accuracy, value ~ door + trial + (1 | fish.id), family = binomial)
 summary(maze_fit)
@@ -301,7 +312,13 @@ summary(maze_fit)
 
 
 ```
+
+The original paper found that a GLMM on male accuracy revealed a significant effect of trial (p = 0.006). In my analysis, trial was approaching significance at p = 0.053.
+
 ```{r}
+
+
+female_accuracy <- accuracy_model %>% filter(sex == "F")
 
 
 maze_fit <- glmer(data = female_accuracy, value ~ door + trial + (1 | fish.id), family = binomial)
@@ -310,14 +327,11 @@ summary(maze_fit)
 
 
 ```
-
-The model above only shows an effect of sex, but not trial, indicating that males move more quickly through the maze then 
-
-
-To analyze choice accuracy in the maze I will fit a generalized linear mixed model to the maze data with *mean accuracy per subject* as the dependent variable, with sex, trial, and sector (first or second) as fixed effects, and subject ID as a random effect.
+As in the origianl paper, I found no effect of trial or door on female accuracy. Original paper reported trial (p = 0.436), door (p = 0.596).
 
 
-**Can't do this until I fix accuracy df** and will maybe have same problem as abvove: **Stuck running the GLMM**
+I will also compare average choice accuracy in trials 2-5. I will remove trial 1 as fish have no prior experience with the maze and their accuracy is not expected to differ from chance. I'll compare average accuracy to accuracy expected by chance (50%). To calculate accuracy for each fish I will count the number of correct choices out of total choices across 4 trials. There are 2 choices per trial, and 4 trials, so 8 total choices. Average choice accuracy will be the number of correct choices divided by 8. I will compare mean accuracy in males and females separatley. 
+
 
 ```{r}
 
@@ -331,18 +345,27 @@ mean_subject_accuracy <- maze %>%
             sex = unique(sex))
   
 
-head(mean_subject_accuracy)
+
 
 # make a copy of ^ for males and females to compare to chance (50%)
 
 males <- mean_subject_accuracy %>% filter(sex == "M")
 females <- mean_subject_accuracy %>% filter(sex == "F")
-#should be a ttest 
+
 
 t.test(males$accuracy_percent, mu = 0.5, alternative = "greater")
 t.test(females$accuracy_percent, mu = 0.5, alternative = "greater")
 
-
-
-
 ```
+My results confirmed those of the orignal paper: overall accuracy was significantly greater than chance for males (p < 0.001) but not females (0.306).
+
+##Discussion:
+
+
+Overall I was successful in recreating the plots and analyses of this paper. My visualizations look very similar to the original paper. My analyses were largely similar, although there were a few differences. For example, the LMM on time to solve the maze did not show any significant effects in my model, but it did in the paper. Similarly, in the GLMM on accuracy, the original paper reported only an effect of sex, but my analyses also showed a near-signifcant effect of trial. Also, the original paper found that a GLMM on male accuracy revealed a significant effect of trial (p = 0.006). In my analysis, trial was approaching significance at p = 0.053. Finally, the original paper reported a GLMM on male accuracy revealed a significant effect of trial (p = 0.006). In my analysis, trial was approaching significance at p = 0.053.
+
+If the paper would have included more specific information on the parameters of these tests that might account for some of the differences in our analyses. Also, they weren't always clear on what analyses was being done. We had to infer which statistical test was done by the stats they report in the results (partiicularly for the mean choice accuracy by sex compared to chance test)
+
+
+
+[How successful were you at replicating the analyses and visualizations in the study? What problems did you encounter? Why might you have encountered those problems? What details were lacking from the original study's methods that might have hampered your ability to replicate the authors' results?]
