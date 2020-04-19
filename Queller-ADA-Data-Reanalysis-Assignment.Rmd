@@ -21,19 +21,13 @@ knitr::opts_chunk$set(
 ```
 #Background
 
-This paper looks into differecnes in learning ability between male and female guppies in two learning tasks: a detour task and a maze task. Males and female guppies differ in various asepcects of behavior and ecology (e.g. colorful males face higher predation) and the researcheres wanted to know if males and females have evolved different cognitive abilities. 
+This paper looks into differecnes in learning ability between male and female guppies in two learning tasks: a detour task and a maze task. Male and female guppies differ in various asepcects of behavior and ecology (e.g. colorful males face higher predation) and the researcheres wanted to know if males and females have evolved different cognitive abilities as a result. 
 
-The detour task consists of a tank with a shoal group (reward) on one end and the focal fish on the other. Between them is a transparent divider the fish must detour around to reach the shoal. For the detour task, the researchers made the divider either fully transparent or semi-transparent (aka opqaue). Each fish was tested in either the transparent or opaque treatment and went throught the task 5 times. The researchers measured two variables in this task: overal solve time and time spent at the barrier.
+The detour task consists of a tank with a shoal group (reward) on one end and the focal fish on the other. Between them is a transparent divider the fish must detour around to reach the shoal. For the detour task, the researchers made the divider either fully transparent or semi-transparent (opqaue). Each fish was tested in either the transparent or opaque treatment and went throught the task 5 times. The researchers measured two variables in this task: overal solve time and time spent at the barrier.
 
 The maze task again consists of a shoal group (reward) on one side and a focal fish on the other. Between them are two barriers, each with 2 door choice, one of which is blocked. The focal fish must choose the correct door at each barrier to reach the reward. Each fish is tested 5 times to look for improvements in solve time and for overall accuracy. 
 
-
-
-
-
-
-
-To summarize the plots and analyses for this experiment:
+This experiemnt uses two datasets, one for each task. Below I will summarize the visualazations and analyses I will perform on each dataset:
 
 Detour:
 
@@ -57,7 +51,8 @@ plots
 analyses:
 3) LMM with time to solve task as a function of trial and sex
 4) GLMM with door choice (correct or incorrect) as a function of trial, sex, and sector (first or second barrier)
-5) GLMM with mean accuracy across trials 2-5 as function of trial and sex
+5) t ttest to compare male mean accuracy on trials (2-5) agaisnt chance ()
+6) t ttest to compare female mean accuracy on trials (2-5) agaisnt chance ()
 
 
 
@@ -76,6 +71,7 @@ library(lmerTest)
 
 detour <- read_csv("/Users/queller/Desktop/ADA_detour.csv")
 head(detour)
+
 maze <- read_csv("/Users/queller/Desktop/ADA_maze.csv")
 head(maze)
 
@@ -230,7 +226,7 @@ accuracy_model <- maze %>%
 
 male_accuracy <- accuracy_model %>% filter(sex == "M")
   
-  view(male_accuracy)
+head(male_accuracy)
 
 #accuracy model on just females
 
@@ -295,6 +291,7 @@ I will first need to convert my data from wide to long (first.door and second.do
 maze_fit <- glmer(data = accuracy_model, value ~ sex + door + trial + (1 | fish.id), family = binomial)
 summary(maze_fit)
 ```
+
 ```{r}
 
 
